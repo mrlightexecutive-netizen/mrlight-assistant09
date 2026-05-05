@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MR. Light AI Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --blue:#185FA5; --blue-d:#0C447C; --blue-l:#E6F1FB; --blue-m:#378ADD;
+    --green:#22C55E; --amber:#EF9F27; --red:#E24B4A;
+    --bg0:#0B0E13; --bg1:#141920; --bg2:#1C2330; --bg3:#232D3F;
+    --txt0:#F0F4FA; --txt1:#B8C4D8; --txt2:#6E7F99;
+    --brd:#2A3548; --brd2:#3A4860;
+    --radius:12px; --radius-sm:8px;
+  }
+  *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'DM Sans',sans-serif; background:var(--bg0); color:var(--txt0); min-height:100vh; display:flex; align-items:center; justify-content:center; }
+
+  .shell { width:480px; height:680px; display:flex; flex-direction:column; background:var(--bg1); border:1px solid var(--brd); border-radius:20px; overflow:hidden; position:relative; }
+
+  /* TOPBAR */
+  .topbar { display:flex; align-items:center; gap:10px; padding:14px 16px; background:var(--bg2); border-bottom:1px solid var(--brd); flex-shrink:0; }
+  .av-ring { position:relative; }
+  .av { width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg,var(--blue),var(--blue-m)); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; color:#fff; letter-spacing:.5px; flex-shrink:0; }
+  .pulse { width:10px; height:10px; border-radius:50%; background:var(--green); border:2px solid var(--bg2); position:absolute; bottom:0; right:0; }
+  .pulse::after { content:''; position:absolute; inset:-3px; border-radius:50%; border:1.5px solid var(--green); opacity:0; animation:ping 2s ease-out infinite; }
+  @keyframes ping { 0%{opacity:.7;transform:scale(1)} 100%{opacity:0;transform:scale(1.8)} }
+  .tb-info { flex:1; min-width:0; }
+  .tb-name { font-size:13.5px; font-weight:600; color:var(--txt0); }
+  .tb-sub { font-size:11px; color:var(--green); display:flex; align-items:center; gap:4px; margin-top:1px; }
+  .tb-sub::before { content:''; display:inline-block; width:5px; height:5px; border-radius:50%; background:var(--green); }
+  .tb-actions { display:flex; align-items:center; gap:6px; }
+  .icon-btn { width:30px; height:30px; border-radius:var(--radius-sm); border:1px solid var(--brd); background:transparent; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .15s; color:var(--txt1); position:relative; }
+  .icon-btn:hover { background:var(--bg3); border-color:var(--brd2); color:var(--txt0); }
+  .notif-dot { width:7px; height:7px; border-radius:50%; background:var(--amber); border:1.5px solid var(--bg2); position:absolute; top:4px; right:4px; }
+  .brand-badge { font-size:10px; padding:3px 8px; border-radius:20px; background:rgba(24,95,165,.2); color:var(--blue-m); font-weight:500; border:1px solid rgba(55,138,221,.25); white-space:nowrap; }
+
+  /* STATS BAR */
+  .stats-bar { display:flex; align-items:center; gap:0; border-bottom:1px solid var(--brd); background:var(--bg2); flex-shrink:0; overflow:hidden; }
+  .stat { flex:1; padding:7px 12px; text-align:center; border-right:1px solid var(--brd); }
+  .stat:last-child { border-right:none; }
+  .stat-val { font-size:13px; font-weight:600; color:var(--txt0); font-family:'JetBrains Mono',monospace; }
+  .stat-lbl { font-size:9.5px; color:var(--txt2); text-transform:uppercase; letter-spacing:.4px; margin-top:1px; }
+
+  /* MESSAGES */
+  .msgs { flex:1; overflow-y:auto; padding:14px 14px; display:flex; flex-direction:column; gap:10px; scroll-behavior:smooth; }
+  .msgs::-webkit-scrollbar { width:4px; }
+  .msgs::-webkit-scrollbar-track { background:transparent; }
+  .msgs::-webkit-scrollbar-thumb { background:var(--brd2); border-radius:4px; }
+  .ts-label { font-size:10px; color:var(--txt2); text-align:center; letter-spacing:.4px; text-transform:uppercase; margin:4px 0; }
+  .msg { display:flex; gap:8px; align-items:flex-end; animation:msgIn .22s ease-out; }
+  @keyframes msgIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+  .msg.u { flex-direction:row-reverse; }
+  .mav { width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:600; flex-shrink:0; }
+  .msg.b .mav { background:linear-gradient(135deg,var(--blue),var(--blue-m)); color:#fff; }
+  .msg.u .mav { background:var(--bg3); color:var(--txt1); border:1px solid var(--brd); }
+  .msg-col { display:flex; flex-direction:column; gap:4px; max-width:82%; }
+  .msg.u .msg-col { align-items:flex-end; }
+  .mb { padding:9px 13px; font-size:13px; line-height:1.65; border-radius:14px; white-space:pre-wrap; word-break:break-word; position:relative; }
+  .msg.b .mb { background:var(--bg3); color:var(--txt0); border-radius:4px 14px 14px 14px; border:1px solid var(--brd); }
+  .msg.u .mb { background:var(--blue); color:#fff; border-radius:14px 4px 14px 14px; }
+  .msg-meta { display:flex; align-items:center; gap:6px; }
+  .msg-time { font-size:10px; color:var(--txt2); }
+  .msg-action { font-size:10px; color:var(--txt2); cursor:pointer; padding:2px 5px; border-radius:4px; border:1px solid transparent; display:flex; align-items:center; gap:3px; transition:all .12s; }
+  .msg-action:hover { background:var(--bg3); border-color:var(--brd); color:var(--txt1); }
+  .msg.u .msg-action { color:rgba(255,255,255,.5); }
+  .msg.u .msg-action:hover { background:rgba(255,255,255,.1); border-color:rgba(255,255,255,.2); color:#fff; }
+
+  /* TYPING */
+  .think-row { display:flex; gap:8px; align-items:center; animation:msgIn .2s ease-out; }
+  .think-bbl { display:flex; gap:4px; align-items:center; padding:10px 14px; background:var(--bg3); border-radius:4px 14px 14px 14px; border:1px solid var(--brd); }
+  .dot { width:5px; height:5px; border-radius:50%; background:var(--blue-m); animation:bop 1.1s infinite; }
+  .dot:nth-child(2){animation-delay:.18s}.dot:nth-child(3){animation-delay:.36s}
+  @keyframes bop { 0%,60%,100%{transform:translateY(0);opacity:.3} 30%{transform:translateY(-4px);opacity:1} }
+
+  /* BOTTOM */
+  .bottom { border-top:1px solid var(--brd); background:var(--bg2); flex-shrink:0; }
+
+  /* CHIPS */
+  .chips-wrap { padding:10px 12px 0; overflow-x:auto; scrollbar-width:none; }
+  .chips-wrap::-webkit-scrollbar { display:none; }
+  .chips-inner { display:flex; gap:6px; width:max-content; }
+  .chip { font-size:11px; padding:5px 11px; border-radius:20px; border:1px solid var(--brd); background:var(--bg1); color:var(--txt1); cursor:pointer; white-space:nowrap; transition:all .12s; font-family:'DM Sans',sans-serif; }
+  .chip:hover { border-color:var(--blue); color:var(--blue-m); background:rgba(24,95,165,.1); }
+  .chip.special { background:rgba(239,159,39,.08); border-color:rgba(239,159,39,.35); color:var(--amber); }
+  .chip.email-chip { background:rgba(34,197,94,.08); border-color:rgba(34,197,94,.3); color:var(--green); }
+
+  /* PASTE PANEL */
+  .paste-panel { display:none; flex-direction:column; gap:8px; padding:10px 12px; border-top:1px solid var(--brd); }
+  .paste-panel.open { display:flex; }
+  .paste-lbl { font-size:11px; color:var(--txt2); display:flex; align-items:center; gap:6px; }
+  .paste-lbl span { background:var(--bg3); padding:2px 6px; border-radius:4px; font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--blue-m); border:1px solid var(--brd); }
+  #parea { width:100%; min-height:72px; max-height:110px; padding:9px 10px; font-size:11px; font-family:'JetBrains Mono',monospace; border:1px solid var(--brd); border-radius:var(--radius-sm); resize:vertical; background:var(--bg1); color:var(--txt1); outline:none; transition:border-color .15s; }
+  #parea:focus { border-color:var(--blue); }
+  #parea::placeholder { color:var(--txt2); }
+  .pbtns { display:flex; gap:8px; }
+  .pbtn { font-size:11.5px; padding:6px 14px; border-radius:var(--radius-sm); border:1px solid var(--brd); background:transparent; color:var(--txt1); cursor:pointer; font-family:'DM Sans',sans-serif; transition:all .12s; }
+  .pbtn:hover { background:var(--bg3); }
+  .pbtn.ok { background:var(--blue); color:#fff; border-color:var(--blue); }
+  .pbtn.ok:hover { background:var(--blue-d); }
+
+  /* EMAIL MODAL */
+  .modal-overlay { display:none; position:absolute; inset:0; background:rgba(11,14,19,.85); z-index:50; align-items:center; justify-content:center; padding:20px; }
+  .modal-overlay.open { display:flex; }
+  .modal { background:var(--bg2); border:1px solid var(--brd2); border-radius:var(--radius); padding:20px; width:100%; max-width:360px; display:flex; flex-direction:column; gap:14px; }
+  .modal-header { display:flex; align-items:center; justify-content:space-between; }
+  .modal-title { font-size:14px; font-weight:600; color:var(--txt0); display:flex; align-items:center; gap:8px; }
+  .modal-close { width:26px; height:26px; border-radius:6px; border:1px solid var(--brd); background:transparent; color:var(--txt2); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:14px; }
+  .modal-close:hover { background:var(--bg3); color:var(--txt0); }
+  .modal-field { display:flex; flex-direction:column; gap:5px; }
+  .modal-lbl { font-size:11px; color:var(--txt2); text-transform:uppercase; letter-spacing:.4px; }
+  .modal-input { padding:9px 12px; border-radius:var(--radius-sm); border:1px solid var(--brd); background:var(--bg1); color:var(--txt0); font-size:13px; font-family:'DM Sans',sans-serif; outline:none; transition:border-color .15s; }
+  .modal-input:focus { border-color:var(--blue); }
+  .modal-ta { min-height:100px; resize:vertical; }
+  .modal-actions { display:flex; gap:8px; justify-content:flex-end; }
+  .mbtn { padding:8px 18px; border-radius:var(--radius-sm); font-size:13px; font-family:'DM Sans',sans-serif; cursor:pointer; border:1px solid var(--brd); background:transparent; color:var(--txt1); transition:all .12s; }
+  .mbtn:hover { background:var(--bg3); }
+  .mbtn.primary { background:var(--blue); color:#fff; border-color:var(--blue); }
+  .mbtn.primary:hover { background:var(--blue-d); }
+  .email-to { font-size:12px; color:var(--blue-m); font-family:'JetBrains Mono',monospace; background:rgba(24,95,165,.15); padding:4px 10px; border-radius:6px; border:1px solid rgba(55,138,221,.2); }
+
+  /* INPUT ROW */
+  .irow { display:flex; gap:8px; align-items:flex-end; padding:10px 12px; }
+  #inp { flex:1; padding:10px 12px; border-radius:var(--radius-sm); border:1px solid var(--brd); font-size:13px; font-family:'DM Sans',sans-serif; background:var(--bg1); color:var(--txt0); resize:none; height:40px; max-height:96px; overflow-y:auto; line-height:1.5; outline:none; transition:border-color .15s; }
+  #inp:focus { border-color:var(--blue); }
+  #inp::placeholder { color:var(--txt2); }
+  .sbtn { width:38px; height:38px; border-radius:var(--radius-sm); background:var(--blue); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:background .15s; }
+  .sbtn:hover { background:var(--blue-d); }
+  .sbtn:disabled { background:var(--brd2); cursor:not-allowed; opacity:.5; }
+
+  /* TOAST */
+  .toast { position:absolute; bottom:80px; left:50%; transform:translateX(-50%); background:var(--bg3); border:1px solid var(--brd2); color:var(--txt0); font-size:12px; padding:7px 16px; border-radius:20px; opacity:0; transition:opacity .2s; pointer-events:none; white-space:nowrap; z-index:100; }
+  .toast.show { opacity:1; }
+</style>
+</head>
+<body>
+
+<div class="shell" id="shell">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="av-ring">
+      <div class="av">MRL</div>
+      <div class="pulse"></div>
+    </div>
+    <div class="tb-info">
+      <div class="tb-name">MR. Light Assistant</div>
+      <div class="tb-sub">Online · Aapka kaam jaanta hoon</div>
+    </div>
+    <div class="tb-actions">
+      <button class="icon-btn" onclick="openEmail()" title="Email to mr.lightexecutive@gmail.com">
+        <div class="notif-dot"></div>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+      </button>
+      <button class="icon-btn" onclick="exportChat()" title="Export conversation">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </button>
+      <div class="brand-badge">MR. Light Illumination</div>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-bar" id="statsBar">
+    <div class="stat"><div class="stat-val" id="s-msgs">0</div><div class="stat-lbl">Messages</div></div>
+    <div class="stat"><div class="stat-val" id="s-session">00:00</div><div class="stat-lbl">Session</div></div>
+    <div class="stat"><div class="stat-val" id="s-emails">0</div><div class="stat-lbl">Emails Sent</div></div>
+  </div>
+
+  <!-- MESSAGES -->
+  <div class="msgs" id="msgs">
+    <div class="ts-label">Today · <span id="dateLabel"></span></div>
+    <div class="msg b" id="welcome-msg">
+      <div class="mav">AI</div>
+      <div class="msg-col">
+        <div class="mb">Haan Aniket bhai! 👋 MR. Light ka koi bhi kaam pucho — tasks, BOQ, site allocation, quotation, pending items — sab ke liye hoon.
+
+Data paste karna ho toh "📋 Paste Data" chip use karo. Reply email karna ho toh email icon press karo.</div>
+        <div class="msg-meta">
+          <span class="msg-time" id="welcome-time"></span>
+          <span class="msg-action" onclick="emailMsg(document.querySelector('#welcome-msg .mb').innerText)">✉ Email</span>
+          <span class="msg-action" onclick="copyMsg(this)" data-text="">📋 Copy</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM -->
+  <div class="bottom">
+    <div class="chips-wrap">
+      <div class="chips-inner">
+        <span class="chip" onclick="ask('Aaj ke pending tasks kya hain?')">📌 Pending tasks</span>
+        <span class="chip" onclick="ask('Area-wise BOQ breakdown dikhao')">📐 BOQ breakdown</span>
+        <span class="chip" onclick="ask('Total quotation amount with GST batao')">💰 Total with GST</span>
+        <span class="chip" onclick="ask('Overdue tasks kaun se hain?')">⚠️ Overdue</span>
+        <span class="chip" onclick="ask('Site allocation ka status kya hai?')">🏗️ Site status</span>
+        <span class="chip" onclick="ask('Is hafte kya complete hua? Summary do.')">📊 Weekly summary</span>
+        <span class="chip" onclick="ask('High priority items list karo')">🔴 High priority</span>
+        <span class="chip email-chip" onclick="openEmail()">✉ Email Report</span>
+        <span class="chip special" onclick="togglePaste()">📋 Paste Data</span>
+      </div>
+    </div>
+
+    <div class="paste-panel" id="ppanel">
+      <div class="paste-lbl">Excel / CSV / Table data <span>Ctrl+V</span> karke paste karo</div>
+      <textarea id="parea" placeholder="Copied cells ya CSV data yahan paste karo..."></textarea>
+      <div class="pbtns">
+        <button class="pbtn" onclick="togglePaste()">Cancel</button>
+        <button class="pbtn ok" onclick="attachPaste()">Attach ↗</button>
+      </div>
+    </div>
+
+    <div class="irow">
+      <textarea id="inp" placeholder="Hindi, English, Hinglish — kuch bhi pucho..." rows="1"></textarea>
+      <button class="sbtn" id="sbtn" onclick="send()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- EMAIL MODAL -->
+  <div class="modal-overlay" id="emailModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--blue-m)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+          Send Email
+        </div>
+        <button class="modal-close" onclick="closeEmail()">✕</button>
+      </div>
+      <div class="modal-field">
+        <div class="modal-lbl">To</div>
+        <div class="email-to">mr.lightexecutive@gmail.com</div>
+      </div>
+      <div class="modal-field">
+        <div class="modal-lbl">Subject</div>
+        <input type="text" class="modal-input" id="emailSubject" value="MR. Light — AI Assistant Report" />
+      </div>
+      <div class="modal-field">
+        <div class="modal-lbl">Message</div>
+        <textarea class="modal-input modal-ta" id="emailBody" placeholder="Email body yahan likho ya chat summary auto-fill ho jaayegi..."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="mbtn" onclick="closeEmail()">Cancel</button>
+        <button class="mbtn" onclick="fillSummary()">📋 Chat Summary</button>
+        <button class="mbtn primary" onclick="sendEmail()">Send ✉</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+const BUSINESS_EMAIL = 'mr.lightexecutive@gmail.com';
+let hist = [], busy = false, pendingData = '', msgCount = 0, emailCount = 0;
+let sessionStart = Date.now();
+
+const SYSTEM = `You are Aniket's personal AI assistant for MR. Light Illumination, his electrical and lighting project business in India.
+
+BUSINESS CONTEXT:
+- MR. Light Illumination handles lighting, electrical, and illumination projects for residential and commercial clients
+- Business email: mr.lightexecutive@gmail.com
+- Areas worked: Living Room, Bedroom, Kitchen, Bathroom, Outdoor, Facade, Parking, Common Areas, Office, Commercial
+- Runs task management via "Mr. Light Programme v13" on Google Sheets + Apps Script
+- HRMS Portal covering ~42 employees with roles: Admin, HR, Employee
+
+TASK SHEET COLUMNS:
+Task ID | Title | Assigned To | Role | Status | Priority | Due Date | Area | Notes
+- Status: Done, In Progress, Pending, Overdue, On Hold
+- Priority: High, Medium, Low
+- Roles: Site Engineer, Supervisor, Electrician, Project Manager, Procurement
+
+QUOTATION / BOQ COLUMNS:
+Item | Area | Qty | Unit | Rate | Amount | Remarks
+- Amount = Qty × Rate
+- GST = 18% on all items unless specified
+- Final = Amount × 1.18
+
+SITE ALLOCATION COLUMNS:
+Site | Person | Date | Status
+
+HRMS COLUMNS:
+Employee ID | Name | Role | Department | Attendance | Leave Balance | Conveyance Claims
+
+CALCULATION RULES:
+- Always use ₹ symbol
+- Indian format: 1,00,000 = 1 lakh; 10,00,000 = 10 lakh; 1,00,00,000 = 1 crore
+- GST = 18% unless stated otherwise
+- When showing BOQ: group by area → subtotal per area → grand total → grand total with GST
+
+OUTPUT RULES:
+- Reply in the EXACT same language used — Hindi, English, or Hinglish
+- Be concise and direct
+- When data is pasted, analyze immediately and give structured, numbered insights
+- Always highlight ⚠️ Overdue and 🔴 High Priority items at the top
+- For task queries: group by Status, show counts
+- For BOQ/quotation: show area-wise subtotals + grand total with GST
+- For email actions: mention the business email mr.lightexecutive@gmail.com when relevant
+- Never mention Draftsbysem or other businesses`;
+
+// Init
+window.addEventListener('DOMContentLoaded', () => {
+  const now = new Date();
+  document.getElementById('dateLabel').textContent = now.toLocaleDateString('en-IN', {day:'numeric', month:'short', year:'numeric'});
+  const t = now.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit', hour12:true});
+  document.getElementById('welcome-time').textContent = t;
+  document.querySelector('#welcome-msg .msg-action[data-text]').setAttribute('data-text', document.querySelector('#welcome-msg .mb').innerText);
+  startSessionTimer();
+});
+
+function startSessionTimer() {
+  setInterval(() => {
+    const s = Math.floor((Date.now() - sessionStart) / 1000);
+    const m = Math.floor(s / 60), sec = s % 60;
+    document.getElementById('s-session').textContent = `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+  }, 1000);
+}
+
+function now12() {
+  return new Date().toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit', hour12:true});
+}
+
+function ask(q) { document.getElementById('inp').value = q; send(); }
+
+function togglePaste() {
+  const p = document.getElementById('ppanel');
+  p.classList.toggle('open');
+  if (p.classList.contains('open')) document.getElementById('parea').focus();
+}
+
+function attachPaste() {
+  const d = document.getElementById('parea').value.trim();
+  if (!d) return;
+  pendingData = d;
+  document.getElementById('parea').value = '';
+  togglePaste();
+  const inp = document.getElementById('inp');
+  if (!inp.value.trim()) inp.value = 'Yeh data analyze karo aur structured summary do';
+  inp.focus();
+  showToast('Data attached ✓');
+}
+
+function appendMsg(role, text) {
+  const msgs = document.getElementById('msgs');
+  const d = document.createElement('div');
+  d.className = 'msg ' + role;
+
+  const isBot = role === 'b';
+  const lbl = isBot ? 'AI' : 'AN';
+  const t = now12();
+  const msgId = 'msg-' + Date.now();
+
+  d.innerHTML = `
+    <div class="mav">${lbl}</div>
+    <div class="msg-col">
+      <div class="mb" id="${msgId}">${text}</div>
+      <div class="msg-meta">
+        <span class="msg-time">${t}</span>
+        ${isBot ? `<span class="msg-action" onclick="emailMsg(document.getElementById('${msgId}').innerText)">✉ Email</span>` : ''}
+        <span class="msg-action" onclick="copyMsgById('${msgId}', this)">📋 Copy</span>
+      </div>
+    </div>`;
+  msgs.appendChild(d);
+  msgs.scrollTop = msgs.scrollHeight;
+  return d;
+}
+
+function showThink() {
+  const msgs = document.getElementById('msgs');
+  const d = document.createElement('div');
+  d.className = 'think-row'; d.id = 'think';
+  d.innerHTML = `<div class="mav" style="width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--blue-m));color:#fff;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;">AI</div><div class="think-bbl"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>`;
+  msgs.appendChild(d);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function removeThink() { const t = document.getElementById('think'); if (t) t.remove(); }
+
+async function send() {
+  if (busy) return;
+  const inp = document.getElementById('inp');
+  let q = inp.value.trim();
+  if (!q) return;
+
+  if (pendingData) {
+    q = q + '\n\n[PASTED DATA]\n' + pendingData;
+    pendingData = '';
+  }
+
+  const displayQ = q.replace(/\[PASTED DATA\][\s\S]*/,'').trim() || 'Data analyze karo';
+  inp.value = ''; inp.style.height = '40px';
+  appendMsg('u', displayQ);
+  hist.push({ role: 'user', content: q });
+  msgCount++;
+  document.getElementById('s-msgs').textContent = msgCount;
+  busy = true;
+  document.getElementById('sbtn').disabled = true;
+  showThink();
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: SYSTEM,
+        messages: hist.slice(-16)
+      })
+    });
+    const data = await res.json();
+    removeThink();
+    const reply = data.content?.[0]?.text || 'Kuch gadbad ho gayi, dobara try karo.';
+    appendMsg('b', reply);
+    hist.push({ role: 'assistant', content: reply });
+    msgCount++;
+    document.getElementById('s-msgs').textContent = msgCount;
+  } catch (e) {
+    removeThink();
+    appendMsg('b', '⚠️ Network error. Please check connection aur try again karein.');
+  }
+  busy = false;
+  document.getElementById('sbtn').disabled = false;
+}
+
+// EMAIL FUNCTIONS
+function openEmail(prefillText) {
+  document.getElementById('emailModal').classList.add('open');
+  if (prefillText) {
+    document.getElementById('emailBody').value = prefillText;
+  }
+}
+
+function closeEmail() {
+  document.getElementById('emailModal').classList.remove('open');
+}
+
+function emailMsg(text) {
+  document.getElementById('emailSubject').value = 'MR. Light — AI Analysis Report';
+  document.getElementById('emailBody').value = text;
+  openEmail();
+}
+
+function fillSummary() {
+  const allMsgs = document.querySelectorAll('.mb');
+  let summary = 'MR. Light Illumination — AI Chat Summary\n';
+  summary += '==========================================\n';
+  summary += 'Date: ' + new Date().toLocaleDateString('en-IN', {day:'numeric', month:'long', year:'numeric'}) + '\n\n';
+  let i = 1;
+  document.querySelectorAll('.msg').forEach(m => {
+    const role = m.classList.contains('b') ? 'AI Assistant' : 'Aniket';
+    const text = m.querySelector('.mb')?.innerText;
+    if (text) summary += `[${i++}] ${role}:\n${text}\n\n`;
+  });
+  document.getElementById('emailSubject').value = 'MR. Light — Session Summary · ' + new Date().toLocaleDateString('en-IN');
+  document.getElementById('emailBody').value = summary;
+}
+
+function sendEmail() {
+  const subject = encodeURIComponent(document.getElementById('emailSubject').value);
+  const body = encodeURIComponent(document.getElementById('emailBody').value);
+  window.open(`mailto:${BUSINESS_EMAIL}?subject=${subject}&body=${body}`, '_blank');
+  emailCount++;
+  document.getElementById('s-emails').textContent = emailCount;
+  closeEmail();
+  showToast(`Email drafted for ${BUSINESS_EMAIL} ✓`);
+  document.getElementById('emailBody').value = '';
+}
+
+function exportChat() {
+  let out = 'MR. LIGHT ILLUMINATION — CHAT EXPORT\n';
+  out += '======================================\n';
+  out += 'Exported: ' + new Date().toLocaleString('en-IN') + '\n\n';
+  document.querySelectorAll('.msg').forEach(m => {
+    const role = m.classList.contains('b') ? 'MRL AI' : 'Aniket';
+    const text = m.querySelector('.mb')?.innerText;
+    const time = m.querySelector('.msg-time')?.innerText || '';
+    if (text) out += `[${time}] ${role}:\n${text}\n\n`;
+  });
+  const blob = new Blob([out], {type:'text/plain'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `MRL-Chat-${new Date().toISOString().slice(0,10)}.txt`;
+  a.click();
+  showToast('Chat exported ✓');
+}
+
+function copyMsgById(id, el) {
+  const text = document.getElementById(id)?.innerText || '';
+  navigator.clipboard.writeText(text).then(() => {
+    el.textContent = '✓ Copied';
+    setTimeout(() => el.textContent = '📋 Copy', 1800);
+  });
+}
+
+function copyMsg(el) {
+  const text = el.getAttribute('data-text') || '';
+  navigator.clipboard.writeText(text).then(() => {
+    el.textContent = '✓ Copied';
+    setTimeout(() => el.textContent = '📋 Copy', 1800);
+  });
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// Input auto-resize + keyboard
+const inp = document.getElementById('inp');
+inp.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } });
+inp.addEventListener('input', function() { this.style.height = '40px'; this.style.height = Math.min(this.scrollHeight, 96) + 'px'; });
+
+// Close modal on overlay click
+document.getElementById('emailModal').addEventListener('click', function(e) { if (e.target === this) closeEmail(); });
+</script>
+</body>
+</html>
